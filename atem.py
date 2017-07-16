@@ -344,7 +344,7 @@ class Atem:
 
     def recvAuxS(self, data):
         auxIndex = data[0]
-        self.state[auxIndex] = struct.unpack('!H', data[2:4])[0]
+        self.state['aux'][auxIndex] = struct.unpack('!H', data[2:4])[0]
 
     def recvCCdo(self, data):
         input_num = data[1]
