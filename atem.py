@@ -4,32 +4,29 @@
 
 import socket
 import struct
-import collections
 import ctypes
 import time
 from pprint import pprint
 
-
-def dumpHex (buffer):
+def dumpHex(buffer):
     s = ''
     for c in buffer:
         s += hex(c) + ' '
     print(s)
 
 
-def dumpAscii (buffer):
+def dumpAscii(buffer):
     s = ''
     for c in buffer:
-        if (ord(c)>=0x20)and(ord(c)<=0x7F):
-            s+=c
+        if (ord(c) >= 0x20) and (ord(c) <= 0x7F):
+            s += c
         else:
-            s+='.'
+            s += '.'
     print(s)
 
 
 # implements communication with atem switcher
 class Atem:
-
     # size of header data
     SIZE_OF_HEADER = 0x0c
 
@@ -51,19 +48,34 @@ class Atem:
                              5: 'Media Player Key', 6: 'SuperSource', 128: 'ME Output', 129: 'Auxilary', 130: 'Mask'}
     LABELS_MULTIVIEWER_LAYOUT = ['top', 'bottom', 'left', 'right']
     LABELS_AUDIO_PLUG = ['Internal', 'SDI', 'HDMI', 'Component', 'Composite', 'SVideo', 'XLR', 'AES/EBU', 'RCA']
-    LABELS_VIDEOSRC = { 0: 'Black', 1: 'Input 1', 2: 'Input 2', 3: 'Input 3', 4: 'Input 4', 5: 'Input 5', 6: 'Input 6', 7: 'Input 7', 8: 'Input 8', 9: 'Input 9', 10: 'Input 10', 11: 'Input 11', 12: 'Input 12', 13: 'Input 13', 14: 'Input 14', 15: 'Input 15', 16: 'Input 16', 17: 'Input 17', 18: 'Input 18', 19: 'Input 19', 20: 'Input 20', 1000: 'Color Bars', 2001: 'Color 1', 2002: 'Color 2', 3010: 'Media Player 1', 3011: 'Media Player 1 Key', 3020: 'Media Player 2', 3021: 'Media Player 2 Key', 4010: 'Key 1 Mask', 4020: 'Key 2 Mask', 4030: 'Key 3 Mask', 4040: 'Key 4 Mask', 5010: 'DSK 1 Mask', 5020: 'DSK 2 Mask', 6000: 'Super Source', 7001: 'Clean Feed 1', 7002: 'Clean Feed 2', 8001: 'Auxilary 1', 8002: 'Auxilary 2', 8003: 'Auxilary 3', 8004: 'Auxilary 4', 8005: 'Auxilary 5', 8006: 'Auxilary 6', 10010: 'ME 1 Prog', 10011: 'ME 1 Prev', 10020: 'ME 2 Prog', 10021: 'ME 2 Prev' }
-    LABELS_AUDIOSRC = { 1: 'Input 1', 2: 'Input 2', 3: 'Input 3', 4: 'Input 4', 5: 'Input 5', 6: 'Input 6', 7: 'Input 7', 8: 'Input 8', 9: 'Input 9', 10: 'Input 10', 11: 'Input 11', 12: 'Input 12', 13: 'Input 13', 14: 'Input 14', 15: 'Input 15', 16: 'Input 16', 17: 'Input 17', 18: 'Input 18', 19: 'Input 19', 20: 'Input 20', 1001: 'XLR', 1101: 'AES/EBU', 1201: 'RCA', 2001: 'MP1', 2002: 'MP2' }
+    LABELS_VIDEOSRC = {0: 'Black', 1: 'Input 1', 2: 'Input 2', 3: 'Input 3', 4: 'Input 4', 5: 'Input 5', 6: 'Input 6',
+                       7: 'Input 7', 8: 'Input 8', 9: 'Input 9', 10: 'Input 10', 11: 'Input 11', 12: 'Input 12',
+                       13: 'Input 13', 14: 'Input 14', 15: 'Input 15', 16: 'Input 16', 17: 'Input 17', 18: 'Input 18',
+                       19: 'Input 19', 20: 'Input 20', 1000: 'Color Bars', 2001: 'Color 1', 2002: 'Color 2',
+                       3010: 'Media Player 1', 3011: 'Media Player 1 Key', 3020: 'Media Player 2',
+                       3021: 'Media Player 2 Key', 4010: 'Key 1 Mask', 4020: 'Key 2 Mask', 4030: 'Key 3 Mask',
+                       4040: 'Key 4 Mask', 5010: 'DSK 1 Mask', 5020: 'DSK 2 Mask', 6000: 'Super Source',
+                       7001: 'Clean Feed 1', 7002: 'Clean Feed 2', 8001: 'Auxilary 1', 8002: 'Auxilary 2',
+                       8003: 'Auxilary 3', 8004: 'Auxilary 4', 8005: 'Auxilary 5', 8006: 'Auxilary 6',
+                       10010: 'ME 1 Prog', 10011: 'ME 1 Prev', 10020: 'ME 2 Prog', 10021: 'ME 2 Prev'}
+    LABELS_AUDIOSRC = {1: 'Input 1', 2: 'Input 2', 3: 'Input 3', 4: 'Input 4', 5: 'Input 5', 6: 'Input 6', 7: 'Input 7',
+                       8: 'Input 8', 9: 'Input 9', 10: 'Input 10', 11: 'Input 11', 12: 'Input 12', 13: 'Input 13',
+                       14: 'Input 14', 15: 'Input 15', 16: 'Input 16', 17: 'Input 17', 18: 'Input 18', 19: 'Input 19',
+                       20: 'Input 20', 1001: 'XLR', 1101: 'AES/EBU', 1201: 'RCA', 2001: 'MP1', 2002: 'MP2'}
     # cc
     LABELS_CC_DOMAIN = {0: 'lens', 1: 'camera', 8: 'chip'}
     LABELS_CC_LENS_FEATURE = {0: 'focus', 1: 'auto_focused', 3: 'iris', 9: 'zoom'}
     LABELS_CC_CAM_FEATURE = {1: 'gain', 2: 'white_balance', 5: 'shutter'}
-    LABELS_CC_CHIP_FEATURE = {0: 'lift', 1: 'gamma', 2: 'gain', 3: 'aperture', 4: 'contrast', 5: 'luminance', 6: 'hue-saturation'}
+    LABELS_CC_CHIP_FEATURE = {0: 'lift', 1: 'gamma', 2: 'gain', 3: 'aperture', 4: 'contrast', 5: 'luminance',
+                              6: 'hue-saturation'}
 
     # value options
     VALUES_CC_GAIN = {512: '0db', 1024: '6db', 2048: '12db', 4096: '18db'}
     VALUES_CC_WB = {3200: '3200K', 4500: '4500K', 5000: '5000K', 5600: '5600K', 6500: '6500K', 7500: '7500K'}
-    VALUES_CC_SHUTTER = {20000: '1/50', 16667: '1/60', 13333: '1/75', 11111: '1/90', 10000: '1/100', 8333: '1/120', 6667: '1/150', 5556: '1/180', 4000: '1/250', 2778: '1/360', 2000: '1/500', 1379: '1/725', 1000: '1/1000', 690: '1/1450', 500: '1/2000'}
-    VALUES_AUDIO_MIX = { 0: 'off', 1: 'on', 2: 'AFV' }
+    VALUES_CC_SHUTTER = {20000: '1/50', 16667: '1/60', 13333: '1/75', 11111: '1/90', 10000: '1/100', 8333: '1/120',
+                         6667: '1/150', 5556: '1/180', 4000: '1/250', 2778: '1/360', 2000: '1/500', 1379: '1/725',
+                         1000: '1/1000', 690: '1/1450', 500: '1/2000'}
+    VALUES_AUDIO_MIX = {0: 'off', 1: 'on', 2: 'AFV'}
 
     # initializes the class
     def __init__(self, address):
@@ -77,9 +89,9 @@ class Atem:
         self.isInitialized = False
         self.currentUid = 0x1337
 
-        self.system_config = { 'inputs': {}, 'audio': {} }
+        self.system_config = {'inputs': {}, 'audio': {}}
         self.status = {}
-        self.config = { 'multiviewers': {}, 'mediapool': {} }
+        self.config = {'multiviewers': {}, 'mediapool': {}}
         self.state = {
             'program': {},
             'preview': {},
@@ -98,6 +110,7 @@ class Atem:
 
         self.tallyHandler = None
         self.pgmInputHandler = None
+        self.prvInputHandler = None
 
     # hello packet
     def connectToSwitcher(self):
@@ -114,75 +127,75 @@ class Atem:
         except socket.error:
             return False
         datagram, server = d
-        #print('received datagram')
+        # print('received datagram')
         header = self.parseCommandHeader(datagram)
         if header:
             self.currentUid = header['uid']
-            
-            if header['bitmask'] & self.CMD_HELLOPACKET :
-                #print('not initialized, received HELLOPACKET, sending ACK packet')
+
+            if header['bitmask'] & self.CMD_HELLOPACKET:
+                # print('not initialized, received HELLOPACKET, sending ACK packet')
                 self.isInitialized = False
-                ackDatagram = self.createCommandHeader (self.CMD_ACK, 0, header['uid'], 0x0)
-                self.sendDatagram (ackDatagram)
-            elif (header['bitmask'] & self.CMD_ACKREQUEST) and\
-                 (self.isInitialized or len(datagram) == self.SIZE_OF_HEADER):
-                #print('initialized, received ACKREQUEST, sending ACK packet')
-                #print("Sending ACK for packageId %d" % header['packageId'])
+                ackDatagram = self.createCommandHeader(self.CMD_ACK, 0, header['uid'], 0x0)
+                self.sendDatagram(ackDatagram)
+            elif (header['bitmask'] & self.CMD_ACKREQUEST) and \
+                    (self.isInitialized or len(datagram) == self.SIZE_OF_HEADER):
+                # print('initialized, received ACKREQUEST, sending ACK packet')
+                # print("Sending ACK for packageId %d" % header['packageId'])
                 ackDatagram = self.createCommandHeader(self.CMD_ACK, 0, header['uid'], header['packageId'])
                 self.sendDatagram(ackDatagram)
                 if not self.isInitialized:
                     self.isInitialized = True
-            
+
             if len(datagram) > self.SIZE_OF_HEADER + 2 and not (header['bitmask'] & self.CMD_HELLOPACKET):
                 self.parsePayload(datagram)
 
-        return True        
+        return True
 
     def waitForPacket(self):
-        #print(">>> waiting for packet")
+        # print(">>> waiting for packet")
         while not self.handleSocketData():
             time.sleep(0.01)
-        #print(">>> packet obtained")
+        # print(">>> packet obtained")
 
     # generates packet header data
-    def createCommandHeader (self, bitmask, payloadSize, uid, ackId):
+    def createCommandHeader(self, bitmask, payloadSize, uid, ackId):
         buffer = b''
         packageId = 0
 
         if not (bitmask & (self.CMD_HELLOPACKET | self.CMD_ACK)):
             self.packetCounter += 1
             packageId = self.packetCounter
-    
+
         val = bitmask << 11
         val |= (payloadSize + self.SIZE_OF_HEADER)
-        buffer += struct.pack('!H',val)
-        buffer += struct.pack('!H',uid)
-        buffer += struct.pack('!H',ackId)
-        buffer += struct.pack('!I',0)
-        buffer += struct.pack('!H',packageId)
+        buffer += struct.pack('!H', val)
+        buffer += struct.pack('!H', uid)
+        buffer += struct.pack('!H', ackId)
+        buffer += struct.pack('!I', 0)
+        buffer += struct.pack('!H', packageId)
         return buffer
 
     # parses the packet header
-    def parseCommandHeader (self, datagram):
+    def parseCommandHeader(self, datagram):
         header = {}
 
-        if len(datagram)>=self.SIZE_OF_HEADER :
-            header['bitmask'] = struct.unpack('B',datagram[0:1])[0] >> 3
-            header['size'] = struct.unpack('!H',datagram[0:2])[0] & 0x07FF
-            header['uid'] = struct.unpack('!H',datagram[2:4])[0]
-            header['ackId'] = struct.unpack('!H',datagram[4:6])[0]
-            header['packageId']=struct.unpack('!H',datagram[10:12])[0]
-            #print(header)
+        if len(datagram) >= self.SIZE_OF_HEADER:
+            header['bitmask'] = struct.unpack('B', datagram[0:1])[0] >> 3
+            header['size'] = struct.unpack('!H', datagram[0:2])[0] & 0x07FF
+            header['uid'] = struct.unpack('!H', datagram[2:4])[0]
+            header['ackId'] = struct.unpack('!H', datagram[4:6])[0]
+            header['packageId'] = struct.unpack('!H', datagram[10:12])[0]
+            # print(header)
             return header
         return False
 
     def parsePayload(self, datagram):
-        print('parsing payload')
+        # print('parsing payload')
         # eat up header
         datagram = datagram[self.SIZE_OF_HEADER:]
         # handle data
-        while len(datagram) > 0 :
-            size = struct.unpack('!H',datagram[0:2])[0]
+        while len(datagram) > 0:
+            size = struct.unpack('!H', datagram[0:2])[0]
             packet = datagram[0:size]
             datagram = datagram[size:]
 
@@ -193,20 +206,21 @@ class Atem:
 
             # find the approporiate function in the class
             method = 'recv' + ptype.decode("utf-8")
-            if method in dir(self) :
+            if hasattr(self, method):
                 func = getattr(self, method)
-                if callable(func) :
-                    print('> calling '+method)
+                if callable(func):
+                    # print('> calling ' + method)
                     func(payload)
                 else:
-                    print('problem, member '+method+' not callable')
+                    print('problem, member ' + method + ' not callable')
             else:
-                print('unknown type '+ptype.decode("utf-8"))
-                #dumpAscii(payload)
+                # print('unknown type ' + ptype.decode("utf-8"))
+                # dumpAscii(payload)
+                pass
 
-        #sys.exit()
+        # sys.exit()
 
-    def sendCommand (self, command, payload) :
+    def sendCommand(self, command, payload):
         print('sending command')
         size = len(command) + len(payload) + 4
         dg = self.createCommandHeader(self.CMD_ACKREQUEST, size, self.currentUid, 0)
@@ -217,9 +231,9 @@ class Atem:
         self.sendDatagram(dg)
 
     # sends a datagram to the switcher
-    def sendDatagram (self, datagram) :
-        #print('sending packet')
-        #dumpHex(datagram)
+    def sendDatagram(self, datagram):
+        # print('sending packet')
+        # dumpHex(datagram)
         self.socket.sendto(datagram, self.address)
 
     def parseBitmask(self, num, labels):
@@ -236,13 +250,13 @@ class Atem:
 
     def recv_ver(self, data):
         major, minor = struct.unpack('!HH', data[0:4])
-        self.system_config['version'] = str(major)+'.'+str(minor)
+        self.system_config['version'] = str(major) + '.' + str(minor)
 
-    def recv_pin (self, data):
+    def recv_pin(self, data):
         self.system_config['name'] = data
 
     def recvWarn(self, text):
-        print('Warning: '+text)
+        print('Warning: ' + text)
 
     def recv_top(self, data):
         self.system_config['topology'] = {}
@@ -312,7 +326,8 @@ class Atem:
     def recvMvIn(self, data):
         index = data[0]
         window = data[1]
-        self.config['multiviewers'].setdefault(index, {}).setdefault('windows', {})[window] = struct.unpack('!H', data[2:4])[0]
+        self.config['multiviewers'].setdefault(index, {}).setdefault('windows', {})[window] = \
+        struct.unpack('!H', data[2:4])[0]
 
     def recvPrgI(self, data):
         meIndex = data[0]
@@ -322,6 +337,7 @@ class Atem:
     def recvPrvI(self, data):
         meIndex = data[0]
         self.state['preview'][meIndex] = struct.unpack('!H', data[2:4])[0]
+        self.prvInputHandler(self)
 
     def recvKeOn(self, data):
         meIndex = data[0]
@@ -358,7 +374,8 @@ class Atem:
                 feature_label = self.LABELS_CC_CAM_FEATURE[feature]
             elif domain == 8:
                 feature_label = self.LABELS_CC_CHIP_FEATURE[feature]
-            self.cameracontrol.setdefault(input_num, {}).setdefault('features', {}).setdefault(self.LABELS_CC_DOMAIN[domain], {})[feature_label] = bool(data[4])
+            self.cameracontrol.setdefault(input_num, {}).setdefault('features', {}).setdefault(
+                self.LABELS_CC_DOMAIN[domain], {})[feature_label] = bool(data[4])
         except KeyError:
             print("Warning: CC Feature not recognized (no label)")
 
@@ -369,45 +386,45 @@ class Atem:
         feature_label = feature
         val = None
         val_translated = None
-        if domain == 0: #lens
-            if feature == 0: #focus
+        if domain == 0:  # lens
+            if feature == 0:  # focus
                 val = val_translated = struct.unpack('!h', data[16:18])[0]
-            elif feature == 1: #auto focused
+            elif feature == 1:  # auto focused
                 pass
-            elif feature == 3: #iris
+            elif feature == 3:  # iris
                 val = val_translated = struct.unpack('!h', data[16:18])[0]
-            elif feature == 9: #zoom
+            elif feature == 9:  # zoom
                 val = val_translated = struct.unpack('!h', data[16:18])[0]
-        elif domain == 1: #camera
-            if feature == 1: #gain
+        elif domain == 1:  # camera
+            if feature == 1:  # gain
                 val = struct.unpack('!h', data[16:18])[0]
                 val_translated = self.VALUES_CC_GAIN.get(val, 'unknown')
-            elif feature == 2: #white balance
+            elif feature == 2:  # white balance
                 val = struct.unpack('!h', data[16:18])[0]
                 val_translated = self.VALUES_CC_WB.get(val, val + 'K')
-            elif feature == 5: #shutter
+            elif feature == 5:  # shutter
                 val = struct.unpack('!h', data[18:20])[0]
                 val_translated = self.VALUES_CC_SHUTTER.get(val, 'off')
-        elif domain == 8: #chip
-            val_keys_color = ['R','G','B','Y']
-            if feature == 0: #lift
+        elif domain == 8:  # chip
+            val_keys_color = ['R', 'G', 'B', 'Y']
+            if feature == 0:  # lift
                 val = dict(zip(val_keys_color, struct.unpack('!hhhh', data[16:24])))
-                val_translated = {k: float(v)/4096 for k, v in val.items()}
-            elif feature == 1: #gamma
+                val_translated = {k: float(v) / 4096 for k, v in val.items()}
+            elif feature == 1:  # gamma
                 val = dict(zip(val_keys_color, struct.unpack('!hhhh', data[16:24])))
-                val_translated = {k: float(v)/8192 for k, v in val.items()}
-            elif feature == 2: #gain
+                val_translated = {k: float(v) / 8192 for k, v in val.items()}
+            elif feature == 2:  # gain
                 val = dict(zip(val_keys_color, struct.unpack('!hhhh', data[16:24])))
-                val_translated = {k: float(v)*16/32767 for k, v in val.items()}
-            elif feature == 3: #aperture
-                pass # no idea - todo
-            elif feature == 4: #contrast
+                val_translated = {k: float(v) * 16 / 32767 for k, v in val.items()}
+            elif feature == 3:  # aperture
+                pass  # no idea - todo
+            elif feature == 4:  # contrast
                 val = struct.unpack('!h', data[18:20])[0]
                 val_translated = float(val) / 4096
-            elif feature == 5: #luminance
+            elif feature == 5:  # luminance
                 val = struct.unpack('!h', data[16:18])[0]
                 val_translated = float(val) / 2048
-            elif feature == 6: #hue-saturation
+            elif feature == 6:  # hue-saturation
                 val_keys = ['hue', 'saturation']
                 val = dict(zip(val_keys, struct.unpack('!hh', data[16:20])))
                 val_translated = {}
@@ -420,10 +437,13 @@ class Atem:
                 feature_label = self.LABELS_CC_CAM_FEATURE[feature]
             elif domain == 8:
                 feature_label = self.LABELS_CC_CHIP_FEATURE[feature]
-            self.cameracontrol.setdefault(input_num, {}).setdefault('state_raw', {}).setdefault(self.LABELS_CC_DOMAIN[domain], {})[feature_label] = val
-            self.cameracontrol.setdefault(input_num, {}).setdefault('state', {}).setdefault(self.LABELS_CC_DOMAIN[domain], {})[feature_label] = val_translated
+            self.cameracontrol.setdefault(input_num, {}).setdefault('state_raw', {}).setdefault(
+                self.LABELS_CC_DOMAIN[domain], {})[feature_label] = val
+            self.cameracontrol.setdefault(input_num, {}).setdefault('state', {}).setdefault(
+                self.LABELS_CC_DOMAIN[domain], {})[feature_label] = val_translated
         except KeyError:
-            print("Warning: CC Feature not recognized (no label)")
+            # print("Warning: CC Feature not recognized (no label)")
+            pass
 
     def recvRCPS(self, data):
         player_num = data[0]
@@ -463,9 +483,9 @@ class Atem:
         bank = data[3]
         still_bank = self.state['mediapool'].setdefault('stills', {}).setdefault(bank, {})
         still_bank['used'] = bool(data[4])
-        still_bank['hash'] = data[5:21].decode("utf-8")
+        still_bank['hash'] = data[5:21]#.decode("utf-8")
         filename_length = data[23]
-        still_bank['filename'] = data[24:(24+filename_length)].decode("utf-8")
+        still_bank['filename'] = data[24:(24 + filename_length)].decode("utf-8")
 
     def recvAMIP(self, data):
         channel = struct.unpack('!H', data[0:2])[0]
@@ -493,25 +513,74 @@ class Atem:
     def recvAMTl(self, data):
         src_count = struct.unpack('!H', data[0:2])[0]
         for i in range(src_count):
-            num = 2+i*3
-            channel = struct.unpack('!H', data[num:num+2])[0]
-            self.state['audio'].setdefault('tally', {})[channel] = bool(data[num+2])
+            num = 2 + i * 3
+            channel = struct.unpack('!H', data[num:num + 2])[0]
+            self.state['audio'].setdefault('tally', {})[channel] = bool(data[num + 2])
 
     def recvTlIn(self, data):
         src_count = struct.unpack('!H', data[0:2])[0]
-        for i in range(2, src_count+2):
-            self.state['tally_by_index'][str(i-1)] = self.parseBitmask(data[i], ['prv', 'pgm'])
+        for i in range(2, src_count + 2):
+            self.state['tally_by_index'][str(i - 1)] = self.parseBitmask(data[i], ['prv', 'pgm'])
         self.tallyHandler(self)
 
     def recvTlSr(self, data):
         src_count = struct.unpack('!H', data[0:2])[0]
-        for i in range(2, src_count*3+2):
-            source = struct.unpack('!H', data[i:i+2])[0]
-            self.state['tally'][source] = self.parseBitmask(data[i+2], ['prv', 'pgm'])
+        for i in range(2, min(src_count * 3 + 2, len(data)-2)):
+            source = struct.unpack('!H', data[i:i + 2])[0]
+            self.state['tally'][source] = self.parseBitmask(data[i + 2], ['prv', 'pgm'])
         self.tallyHandler(self)
 
     def recvTime(self, data):
         self.state['last_state_change'] = struct.unpack('!BBBB', data[0:4])
+
+    def recvAMPP(self, data):
+        pass
+
+    def recvColV(self, data):
+        pass
+
+    def recvMPrp(self, data):
+        pass
+
+    def recvMvVM(self, data):
+        pass
+
+    def recvRXCC(self, data):
+        pass
+
+    def recvRXCP(self, data):
+        pass
+
+    def recvRXCE(self, data):
+        pass
+
+    def recvRXMS(self, data):
+        pass
+
+    def recvRXSS(self, data):
+        pass
+
+    def recvTrSS(self, data):
+        pass
+    def recvTrPr(self, data):
+        pass
+
+    def recvTrPs(self, data):
+        pass
+
+    def recvTMxP(self, data):
+        pass
+
+    def recvTDdP(self, data):
+        """Transition Dip"""
+        pass
+
+    def recvTWpP(self, data):
+        """Transition Wipe"""
+        pass
+
+    def recvLKST(self, data):
+        pass
 
     ## user functions
     # used to register a function that should be called when a change is received from the atem
@@ -538,18 +607,63 @@ def init(a):
     while True:
         a.waitForPacket()
 
+
 if __name__ == '__main__':
     import config
+    import RPi.GPIO as GPIO
+
+    GPIO.setmode(GPIO.BCM)
+    GPIO.setwarnings(False)
+    GPIO.setup(config.gpiored,   GPIO.OUT)
+    GPIO.setup(config.gpiogreen, GPIO.OUT)
+
     a = Atem(config.address)
-    a.connectToSwitcher()
+
     def tallyWatch(atem):
-        print("Tally changed")
-        pprint(atem.state['tally'])
-        pprint(atem.state['tally_by_index'])
-    def inputWatch(atem):
-        print("PGM input changed")
-        pprint(atem.state['program'])
+        return
+        print("Tally ", end='')
+        # pprint(atem.state['tally'])
+        # pprint(atem.state['tally_by_index'])
+        i = 1
+        if atem.state['tally'][i]['pgm']:
+            print(i, 'RED')
+        if atem.state['tally'][i]['prv']:
+            print(i, 'GREEN')
+
+    def programInputWatch(atem):
+        print("Program RED", atem.state['program'][0], atem.state['program'])
+
+        if atem.state['program'][0] == config.input:
+            GPIO.output(config.gpiored, GPIO.HIGH)
+        else:
+            GPIO.output(config.gpiored, GPIO.LOW)
+
+
+    def previewInputWatch(atem):
+        print("Preview GREEN", atem.state['preview'][0], atem.state['preview'])
+
+        if atem.state['preview'][0] == config.input:
+            GPIO.output(config.gpiogreen, GPIO.HIGH)
+        else:
+            GPIO.output(config.gpiogreen, GPIO.LOW)
+
     a.tallyHandler = tallyWatch
-    a.pgmInputHandler = inputWatch
-    while True:
+    a.pgmInputHandler = programInputWatch
+    a.prvInputHandler = previewInputWatch
+
+    connected = False
+    while not connected:
+        try:
+            a.connectToSwitcher()
+            connected = True
+        except OSError as e:
+            # catch Network unreachable error
+            if e.errno == 101:
+                time.sleep(5)
+
+    i = 0
+    while i < 5000:
         a.waitForPacket()
+        #i += 1
+
+    GPIO.cleanup()
