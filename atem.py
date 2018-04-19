@@ -117,16 +117,30 @@ class Atem:
         datagram = self.createCommandHeader(self.CMD_HELLOPACKET, 8, self.currentUid, 0x0)
         datagram += struct.pack('!I', 0x01000000)
         datagram += struct.pack('!I', 0x00)
-        self.sendDatagram(datagram)
 
+        while True:
+            try:
+                print('Connecting...')
+                self.sendDatagram(datagram)
+                break
+            except OSError as e:
+                # catch Network unreachable error
+                print('OSError', e.errno)
+                #if e.errno == 101:
+                time.sleep(5)
+            except:
+                print('Connecting datagram failed')
+                time.sleep(5)
+                raise
+                
     # reads packets sent by the switcher
     def handleSocketData(self):
         # network is 100Mbit/s max, MTU is thus at most 1500
         try:
-            d = self.socket.recvfrom(2048)
+            datagram, address = self.socket.recvfrom(2048)
         except socket.error:
             return False
-        datagram, server = d
+
         # print('received datagram')
         header = self.parseCommandHeader(datagram)
         if header:
@@ -143,8 +157,7 @@ class Atem:
                 # print("Sending ACK for packageId %d" % header['packageId'])
                 ackDatagram = self.createCommandHeader(self.CMD_ACK, 0, header['uid'], header['packageId'])
                 self.sendDatagram(ackDatagram)
-                if not self.isInitialized:
-                    self.isInitialized = True
+                self.isInitialized = True
 
             if len(datagram) > self.SIZE_OF_HEADER + 2 and not (header['bitmask'] & self.CMD_HELLOPACKET):
                 self.parsePayload(datagram)
@@ -153,8 +166,15 @@ class Atem:
 
     def waitForPacket(self):
         # print(">>> waiting for packet")
+        i = 0
         while not self.handleSocketData():
             time.sleep(0.01)
+            i += 1
+            if i > 200:
+                print('2s no packet, reconnecting')
+                self.currentUid = 0x1337
+                self.connectToSwitcher()
+                return
         # print(">>> packet obtained")
 
     # generates packet header data
@@ -614,52 +634,48 @@ if __name__ == '__main__':
 
     GPIO.setmode(GPIO.BCM)
     GPIO.setwarnings(False)
-    GPIO.setup(config.gpiored,   GPIO.OUT)
-    GPIO.setup(config.gpiogreen, GPIO.OUT)
+    GPIO.setup(config.gpio_red,   GPIO.OUT)
+    GPIO.setup(config.gpio_green, GPIO.OUT)
 
     a = Atem(config.address)
 
     def tallyWatch(atem):
-        return
-        print("Tally ", end='')
-        # pprint(atem.state['tally'])
+        #return
         # pprint(atem.state['tally_by_index'])
-        i = 1
-        if atem.state['tally'][i]['pgm']:
-            print(i, 'RED')
-        if atem.state['tally'][i]['prv']:
-            print(i, 'GREEN')
+        # pprint(atem.state['tally'])
+        index = str(config.input)
+        tally = atem.state['tally_by_index'][index]
+
+        try:
+            GPIO.output(config.gpio_red,   GPIO.HIGH if tally['pgm'] else GPIO.LOW)
+            GPIO.output(config.gpio_green, GPIO.HIGH if tally['prv'] else GPIO.LOW)
+        except:
+            print(index, 'not found in state', tally)
 
     def programInputWatch(atem):
+        return
         print("Program RED", atem.state['program'][0], atem.state['program'])
 
         if atem.state['program'][0] == config.input:
-            GPIO.output(config.gpiored, GPIO.HIGH)
+            GPIO.output(config.gpio_red, GPIO.HIGH)
         else:
-            GPIO.output(config.gpiored, GPIO.LOW)
+            GPIO.output(config.gpio_red, GPIO.LOW)
 
 
     def previewInputWatch(atem):
+        return
         print("Preview GREEN", atem.state['preview'][0], atem.state['preview'])
 
         if atem.state['preview'][0] == config.input:
-            GPIO.output(config.gpiogreen, GPIO.HIGH)
+            GPIO.output(config.gpio_green, GPIO.HIGH)
         else:
-            GPIO.output(config.gpiogreen, GPIO.LOW)
+            GPIO.output(config.gpio_green, GPIO.LOW)
 
     a.tallyHandler = tallyWatch
     a.pgmInputHandler = programInputWatch
     a.prvInputHandler = previewInputWatch
 
-    connected = False
-    while not connected:
-        try:
-            a.connectToSwitcher()
-            connected = True
-        except OSError as e:
-            # catch Network unreachable error
-            if e.errno == 101:
-                time.sleep(5)
+    a.connectToSwitcher()
 
     i = 0
     while i < 5000:
