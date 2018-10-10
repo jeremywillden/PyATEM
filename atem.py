@@ -254,7 +254,10 @@ class Atem:
     def sendDatagram(self, datagram):
         # print('sending packet')
         # dumpHex(datagram)
-        self.socket.sendto(datagram, self.address)
+        try:
+            self.socket.sendto(datagram, self.address)
+        except:
+            print('socket.sendto failed')
 
     def parseBitmask(self, num, labels):
         states = {}
