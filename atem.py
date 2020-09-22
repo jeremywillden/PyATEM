@@ -262,7 +262,10 @@ class Atem:
     def parseBitmask(self, num, labels):
         states = {}
         for i, label in enumerate(labels):
-            states[label] = bool(num & (1 << len(labels) - i - 1))
+            try:
+                states[label] = bool(num & (1 << len(labels) - i - 1))
+            except:
+                pass
         return states
 
     def convert_cstring(self, bytes):
@@ -315,7 +318,10 @@ class Atem:
     def recv_VMC(self, data):
         size = 18
         for i in range(size):
-            self.system_config.setdefault('video_modes', {})[i] = bool(data[0] & (1 << size - i - 1))
+            try:
+                self.system_config.setdefault('video_modes', {})[i] = bool(data[0] & (1 << size - i - 1))
+            except:
+                pass
 
     def recv_MAC(self, data):
         self.system_config['macro_banks'] = data[0]
@@ -633,12 +639,12 @@ def init(a):
 
 if __name__ == '__main__':
     import config
-    import RPi.GPIO as GPIO
+#    import RPi.GPIO as GPIO
 
-    GPIO.setmode(GPIO.BCM)
-    GPIO.setwarnings(False)
-    GPIO.setup(config.gpio_red,   GPIO.OUT)
-    GPIO.setup(config.gpio_green, GPIO.OUT)
+#    GPIO.setmode(GPIO.BCM)
+#    GPIO.setwarnings(False)
+#    GPIO.setup(config.gpio_red,   GPIO.OUT)
+#    GPIO.setup(config.gpio_green, GPIO.OUT)
 
     a = Atem(config.address)
 
@@ -648,31 +654,33 @@ if __name__ == '__main__':
         # pprint(atem.state['tally'])
         index = str(config.input)
         tally = atem.state['tally_by_index'][index]
+        print("Program: " + str(atem.state['program']))
+        print("Preview: " + str(atem.state['preview']))
 
-        try:
-            GPIO.output(config.gpio_red,   GPIO.HIGH if tally['pgm'] else GPIO.LOW)
-            GPIO.output(config.gpio_green, GPIO.HIGH if tally['prv'] else GPIO.LOW)
-        except:
-            print(index, 'not found in state', tally)
+#        try:
+#            GPIO.output(config.gpio_red,   GPIO.HIGH if tally['pgm'] else GPIO.LOW)
+#            GPIO.output(config.gpio_green, GPIO.HIGH if tally['prv'] else GPIO.LOW)
+#        except:
+#            print(index, 'not found in state', tally)
 
     def programInputWatch(atem):
         return
         print("Program RED", atem.state['program'][0], atem.state['program'])
 
-        if atem.state['program'][0] == config.input:
-            GPIO.output(config.gpio_red, GPIO.HIGH)
-        else:
-            GPIO.output(config.gpio_red, GPIO.LOW)
+#        if atem.state['program'][0] == config.input:
+#            GPIO.output(config.gpio_red, GPIO.HIGH)
+#        else:
+#            GPIO.output(config.gpio_red, GPIO.LOW)
 
 
     def previewInputWatch(atem):
         return
         print("Preview GREEN", atem.state['preview'][0], atem.state['preview'])
 
-        if atem.state['preview'][0] == config.input:
-            GPIO.output(config.gpio_green, GPIO.HIGH)
-        else:
-            GPIO.output(config.gpio_green, GPIO.LOW)
+#        if atem.state['preview'][0] == config.input:
+#            GPIO.output(config.gpio_green, GPIO.HIGH)
+#        else:
+#            GPIO.output(config.gpio_green, GPIO.LOW)
 
     a.tallyHandler = tallyWatch
     a.pgmInputHandler = programInputWatch
@@ -685,4 +693,4 @@ if __name__ == '__main__':
         a.waitForPacket()
         #i += 1
 
-    GPIO.cleanup()
+#    GPIO.cleanup()
